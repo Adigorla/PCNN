@@ -5,6 +5,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Dense, Flatten, Conv2D
 from tensorflow.keras import Model
 
+#data prep
 mnist = tf.keras.datasets.fashion_mnist
 
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -16,22 +17,7 @@ x_test = x_test[... , tf.newaxis]
 train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(32)
 test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(32)
 
-class basicModel(Model):
-  def __init__(self):
-    super(basicModel, self).__init__()
-    self.conv1 = Conv2D(32, 3, activation='relu')
-    self.flatten = Flatten()
-    self.d1 = Dense(128, activation='relu')
-    self.d2 = Dense(10, activation='softmax')
-
-  def call(self, x):
-    x = self.conv1(x)
-    x = self.flatten(x)
-    x = self.d1(x)
-    return self.d2(x)
-
-model = basicModel()
-
+#Setting metics and training methods
 loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
 
 optimizer = tf.keras.optimizers.Adam()
@@ -42,6 +28,37 @@ train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy
 test_loss = tf.keras.metrics.Mean(name='test_loss')
 test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
 
+EPOCHS = 10
+template = "Epoch {}: Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}\n"
+
+#####
+
+
+#BUILD PST LAYER HERE
+
+
+#####
+
+
+#####
+
+class pstModel(Model):
+  def __init__(self):
+    super(pstModel, self).__init__()
+    self.pst1 = ###CALL PST LAYER HERE
+    #Conv2D(32, 3, activation='relu')
+    self.flatten = Flatten()
+    self.d1 = Dense(128, activation='relu')
+    self.d2 = Dense(10, activation='softmax')
+
+  def call(self, x):
+    x = self.pst1(x)
+    x = self.flatten(x)
+    x = self.d1(x)
+    return self.d2(x)
+
+#the train/test functions
+model = pstModel()
 @tf.function
 def train_step(images, labels):
   with tf.GradientTape() as tape:
@@ -53,18 +70,15 @@ def train_step(images, labels):
   train_loss(loss)
   train_accuracy(labels, predictions)
 
-@tf.function
-def test_step(images, labels):
-  predictions = model(images)
-  t_loss = loss_object(labels, predictions)
+  @tf.function
+  def test_step(images, labels):
+    predictions = model(images)
+    t_loss = loss_object(labels, predictions)
 
-  test_loss(t_loss)
-  test_accuracy(labels, predictions)
+    test_loss(t_loss)
+    test_accuracy(labels, predictions)
 
-
-EPOCHS = 10
-template = "Epoch {}: Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}\n"
-
+#the main train/test loop
 for epoch in range(EPOCHS):
 
     print(f"Epoch {epoch+1}: training....")
