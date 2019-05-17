@@ -1,11 +1,17 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 from time import time
 import tensorflow as tf
+from tensorflow import math
+import numpy as np
+from PST_func import PST
 
 from tensorflow.keras.layers import Dense, Flatten, Conv2D
 from tensorflow.keras import Model
 
 #data prep
+BATCH_SIZE = 1
+SEED = 2
+
 mnist = tf.keras.datasets.fashion_mnist
 
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -14,8 +20,8 @@ x_train, x_test = x_train / 255.0, x_test / 255.0
 x_train = x_train[... , tf.newaxis]
 x_test = x_test[... , tf.newaxis]
 
-train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(32)
-test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(32)
+train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(BATCH_SIZE)
+test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(BATCH_SIZE)
 
 #Setting metics and training methods
 loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
@@ -31,21 +37,38 @@ test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
 EPOCHS = 10
 template = "Epoch {}: Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}\n"
 
-#####
+class pst_basic(tf.keras.layers.Layer):
+    def __init__(self):
+        super(pst_basic, self).__init__()
 
+    def build(self, input_shape):
+        self.pst_train = self.add_variable(name="pst_basic_trainable",
+                                        shape=[5,1],
+                                        dtype=tf.dtypes.float32,
+                                        trainable=True,
+                                        initializer=tf.initializers.TruncatedNormal(0.50, 0.25, seed=SEED),
+                                        constraint=lambda var: tf.clip_by_value(var, 0, 1))
+        self.pst_static = self.add_variable(name="pst_basic_satic",
+                                        shape=[1,1],
+                                        dtype=tf.dtypes.float32,
+                                        initializer=tf.constant_initializer(0),
+                                        trainable=False,
+                                        constraint=lambda var: tf.clip_by_value(var, 0, 1))
 
-#BUILD PST LAYER HERE
+    def call(self, input):
+        return(PST(input,
+        self.pst_train[0],
+        self.pst_train[1],
+        self.pst_train[2],
+        self.pst_train[3],
+        self.pst_train[4],
+        self.pst_static[0]))
 
-
-#####
-
-
-#####
 
 class pstModel(Model):
   def __init__(self):
     super(pstModel, self).__init__()
-    self.pst1 = ###CALL PST LAYER HERE
+    self.pst1 = pst_basic()
     #Conv2D(32, 3, activation='relu')
     self.flatten = Flatten()
     self.d1 = Dense(128, activation='relu')
@@ -78,7 +101,13 @@ def train_step(images, labels):
     test_loss(t_loss)
     test_accuracy(labels, predictions)
 
-#the main train/test loop
+#the main train/test loop'
+'''
+model.build((32,28,28,1))
+model.summary()
+raise
+'''
+
 for epoch in range(EPOCHS):
 
     print(f"Epoch {epoch+1}: training....")
