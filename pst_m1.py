@@ -5,6 +5,7 @@ from tensorflow import math
 import numpy as np
 from PST_func import PST
 
+
 from tensorflow.keras.layers import Dense, Flatten, Conv2D
 from tensorflow.keras import Model
 
@@ -37,6 +38,23 @@ test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
 EPOCHS = 10
 template = "Epoch {}: Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}\n"
 
+
+def PST_wrapper(I,LPF,Phase,Warp,Tmin,Tmax,Morph):
+  I = np.array(tf.reshape(I[0], [28,28]))
+  LPF = LPF.numpy()
+  Phase = Phase.numpy()
+  Warp = Warp.numpy()
+  Tmin = Tmin.numpy()
+  Tmax = Tmax.numpy()
+  Morph = Morph.numpy()
+
+  [out, kernel] = PST(I,LPF[0],Phase[0],Warp[0],Tmin[0],Tmax[0],Morph[0])
+  out = tf.convert_to_tensor(out, dtype=tf.float32)
+  out = tf.reshape(out, (1,28,28,1))
+  return out
+
+
+
 class pst_basic(tf.keras.layers.Layer):
     def __init__(self):
         super(pst_basic, self).__init__()
@@ -48,21 +66,24 @@ class pst_basic(tf.keras.layers.Layer):
                                         trainable=True,
                                         initializer=tf.initializers.TruncatedNormal(0.50, 0.25, seed=SEED),
                                         constraint=lambda var: tf.clip_by_value(var, 0, 1))
-        self.pst_static = self.add_variable(name="pst_basic_satic",
+        self.pst_static = self.add_variable(name="pst_basic_static",
                                         shape=[1,1],
                                         dtype=tf.dtypes.float32,
                                         initializer=tf.constant_initializer(0),
                                         trainable=False,
                                         constraint=lambda var: tf.clip_by_value(var, 0, 1))
+        
 
     def call(self, input):
-        return(PST(input,
+        
+        out = PST_wrapper(input,
         self.pst_train[0],
         self.pst_train[1],
         self.pst_train[2],
         self.pst_train[3],
         self.pst_train[4],
-        self.pst_static[0]))
+        self.pst_static[0])
+        return(out)
 
 
 class pstModel(Model):
@@ -82,7 +103,7 @@ class pstModel(Model):
 
 #the train/test functions
 model = pstModel()
-@tf.function
+#@tf.function
 def train_step(images, labels):
   with tf.GradientTape() as tape:
     predictions = model(images)
@@ -114,6 +135,10 @@ for epoch in range(EPOCHS):
 
     start = time()
     for images, labels in train_ds:
+
+        #im = np.array(tf.reshape(images[0], [28,28]))
+        #PST(im,0.21,0.48,12.14,-1.0,0.0019,1)
+        #print("no error on PST")
         train_step(images, labels)
     end = time()
     print(f"\tTraining completed in:{end-start} sec")

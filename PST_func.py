@@ -44,6 +44,7 @@ Citations
 import math
 import numpy as np
 import mahotas as mh
+import tensorflow as tf
 
 #Function to convert from cartesian co-ordinates to polar
 def cart2pol(x, y):
@@ -62,8 +63,9 @@ def cart2pol(x, y):
 #TODO:
 #   -Cosider converting the use of numpy to TF's native math module, i.e., just work in tensor format
 #   -Conider dropping the morphological option and operations
+
 def PST(I,LPF,Phase_strength,Warp_strength, Threshold_min, Threshold_max, Morph_flag):
-    #inverting Threshold_min to simplyfy optimization porcess, so we can clip all variable between 0 and 1
+    #inverting Threshold_min to simplyfy optimization porcess, so we can clip all variable between 0 and 1  
     Threshold_min = -Threshold_min
     L=0.5
     x = np.linspace(-L, L, I.shape[0])
@@ -74,6 +76,7 @@ def PST(I,LPF,Phase_strength,Warp_strength, Threshold_min, Threshold_max, Morph_
     [THETA,RHO] = cart2pol(X,Y)
     # Apply localization kernel to the original image to reduce noise
     Image_orig_f=((np.fft.fft2(I)))
+ 
     expo = np.fft.fftshift(np.exp(-np.power((np.divide(RHO, math.sqrt((LPF**2)/np.log(2)))),2)))
     Image_orig_filtered=np.real(np.fft.ifft2((np.multiply(Image_orig_f,expo))))
     # Constructing the PST Kernel
@@ -85,6 +88,7 @@ def PST(I,LPF,Phase_strength,Warp_strength, Threshold_min, Threshold_max, Morph_
 
     # Calculate phase of the transformed image
     PHI_features=np.angle(Image_orig_filtered_PST)
+ 
 
     if Morph_flag ==0:
         out=PHI_features
@@ -93,7 +97,7 @@ def PST(I,LPF,Phase_strength,Warp_strength, Threshold_min, Threshold_max, Morph_
         features = np.zeros((PHI_features.shape[0],PHI_features.shape[1]))
         features[PHI_features> Threshold_max] = 1 # Bi-threshold decision
         features[PHI_features< Threshold_min] = 1 # as the output phase has both positive and negative values
-        features[I<(np.amax(I)/20)]=0 # Removing edges in the very dark areas of the image (noise)
+        features[(I<(np.amax(I)/20))] = 0 # Removing edges in the very dark areas of the image (noise)
 
         # apply binary morphological operations to clean the transformed image
         out = features
