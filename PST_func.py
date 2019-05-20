@@ -92,6 +92,7 @@ def PST(I,LPF,Phase_strength,Warp_strength, Threshold_min, Threshold_max, Morph_
 
     if Morph_flag ==0:
         out=PHI_features
+        out=(out/np.max(out))*3
     else:
         #   find image sharp transitions by thresholding the phase
         features = np.zeros((PHI_features.shape[0],PHI_features.shape[1]))
@@ -105,6 +106,10 @@ def PST(I,LPF,Phase_strength,Warp_strength, Threshold_min, Threshold_max, Morph_
         out = mh.bwperim(out, 4)
         out = mh.thin(out, 1)
         out = mh.erode(out, np.ones((1, 1)));
+
+    out = out.astype(np.float64)*255
+
+
 
     return (out, PST_Kernel)
 

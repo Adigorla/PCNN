@@ -40,6 +40,7 @@ template = "Epoch {}: Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}\n
 
 
 def PST_wrapper(I,LPF,Phase,Warp,Tmin,Tmax,Morph):
+
   I = np.array(tf.reshape(I[0], [28,28]))
   LPF = LPF.numpy()
   Phase = Phase.numpy()
@@ -47,6 +48,7 @@ def PST_wrapper(I,LPF,Phase,Warp,Tmin,Tmax,Morph):
   Tmin = Tmin.numpy()
   Tmax = Tmax.numpy()
   Morph = Morph.numpy()
+
 
   [out, kernel] = PST(I,LPF[0],Phase[0],Warp[0],Tmin[0],Tmax[0],Morph[0])
   out = tf.convert_to_tensor(out, dtype=tf.float32)
@@ -103,7 +105,7 @@ class pstModel(Model):
 
 #the train/test functions
 model = pstModel()
-#@tf.function
+@tf.function
 def train_step(images, labels):
   with tf.GradientTape() as tape:
     predictions = model(images)
@@ -136,9 +138,9 @@ for epoch in range(EPOCHS):
     start = time()
     for images, labels in train_ds:
 
-        #im = np.array(tf.reshape(images[0], [28,28]))
-        #PST(im,0.21,0.48,12.14,-1.0,0.0019,1)
-        #print("no error on PST")
+        im = np.array(tf.reshape(images[0], [28,28]))
+        #[im, jim] = PST(im,0.21,0.48,12.14,-1.0,0.0019,1)
+        #print("no error on PST {}".format(im))
         train_step(images, labels)
     end = time()
     print(f"\tTraining completed in:{end-start} sec")
