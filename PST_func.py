@@ -71,7 +71,7 @@ def fftshift(x, axes=None):
     """
     x = ops.convert_to_tensor_v2(x)
     if axes is None:
-        axes = tuple(range(x.ndim))
+        axes = tuple(range(x.get_shape().ndims))
         shift = [dim // 2 for dim in x.shape]
     elif isinstance(axes, int):
         shift = x.shape[axes] // 2

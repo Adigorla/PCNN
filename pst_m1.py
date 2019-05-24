@@ -39,20 +39,9 @@ EPOCHS = 10
 template = "Epoch {}: Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}\n"
 
 
-def PST_wrapper(I,LPF,Phase,Warp,Tmin,Tmax,Morph):
-
+def PST_wrapper(I,LPF,Phase,Warp,Tmin,Tmax):
   I = tf.reshape(I[0], [28,28])
-  #LPF = LPF.numpy()
-  #Phase = Phase.numpy()
-  #Warp = Warp.numpy()
-  #min = Tmin.numpy()
-  #Tmax = Tmax.numpy()
-  #Morph = Morph.numpy()
-
-
-  [out, kernel] = PST(I,LPF,Phase,Warp,Tmin,Tmax,Morph)
-  out = tf.convert_to_tensor(out, dtype=tf.float32)
-  out = tf.reshape(out, (1,28,28,1))
+  out = PST(I,LPF,Phase,Warp,Tmin,Tmax)
   return out
 
 
@@ -68,13 +57,14 @@ class pst_basic(tf.keras.layers.Layer):
                                         trainable=True,
                                         initializer=tf.initializers.TruncatedNormal(0.50, 0.25, seed=SEED),
                                         constraint=lambda var: tf.clip_by_value(var, 0, 1))
+        '''
         self.pst_static = self.add_variable(name="pst_basic_static",
                                         shape=[1,1],
                                         dtype=tf.dtypes.float32,
                                         initializer=tf.constant_initializer(0),
                                         trainable=False,
                                         constraint=lambda var: tf.clip_by_value(var, 0, 1))
-        
+        '''
 
     def call(self, input):
         
@@ -83,8 +73,7 @@ class pst_basic(tf.keras.layers.Layer):
         self.pst_train[1],
         self.pst_train[2],
         self.pst_train[3],
-        self.pst_train[4],
-        self.pst_static[0])
+        self.pst_train[4])
        
         return(out)
 
