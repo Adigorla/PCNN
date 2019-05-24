@@ -41,16 +41,16 @@ template = "Epoch {}: Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}\n
 
 def PST_wrapper(I,LPF,Phase,Warp,Tmin,Tmax,Morph):
 
-  I = np.array(tf.reshape(I[0], [28,28]))
-  LPF = LPF.numpy()
-  Phase = Phase.numpy()
-  Warp = Warp.numpy()
-  Tmin = Tmin.numpy()
-  Tmax = Tmax.numpy()
-  Morph = Morph.numpy()
+  I = tf.reshape(I[0], [28,28])
+  #LPF = LPF.numpy()
+  #Phase = Phase.numpy()
+  #Warp = Warp.numpy()
+  #min = Tmin.numpy()
+  #Tmax = Tmax.numpy()
+  #Morph = Morph.numpy()
 
 
-  [out, kernel] = PST(I,LPF[0],Phase[0],Warp[0],Tmin[0],Tmax[0],Morph[0])
+  [out, kernel] = PST(I,LPF,Phase,Warp,Tmin,Tmax,Morph)
   out = tf.convert_to_tensor(out, dtype=tf.float32)
   out = tf.reshape(out, (1,28,28,1))
   return out
@@ -78,13 +78,14 @@ class pst_basic(tf.keras.layers.Layer):
 
     def call(self, input):
         
-        out = PST_wrapper(input,
+        out = PST_wrapper(input, 
         self.pst_train[0],
         self.pst_train[1],
         self.pst_train[2],
         self.pst_train[3],
         self.pst_train[4],
         self.pst_static[0])
+       
         return(out)
 
 
@@ -138,7 +139,7 @@ for epoch in range(EPOCHS):
     start = time()
     for images, labels in train_ds:
 
-        im = np.array(tf.reshape(images[0], [28,28]))
+        #im = np.array(tf.reshape(images[0], [28,28]))
         #[im, jim] = PST(im,0.21,0.48,12.14,-1.0,0.0019,1)
         #print("no error on PST {}".format(im))
         train_step(images, labels)

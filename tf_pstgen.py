@@ -38,11 +38,11 @@ loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
 
 optimizer = tf.keras.optimizers.Adam()
 
-train_loss = tf.keras.metrics.Mean(name='train_loss')
-train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
+#train_loss = tf.keras.metrics.Mean(name='train_loss')
+#train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
 
-test_loss = tf.keras.metrics.Mean(name='test_loss')
-test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
+#test_loss = tf.keras.metrics.Mean(name='test_loss')
+#test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
 
 @tf.function
 def train_step(images, labels):
@@ -64,34 +64,44 @@ def test_step(images, labels):
   test_accuracy(labels, predictions)
 
 
-EPOCHS = 10
-template = "Epoch {}: Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}\n"
+def run_model(train_ds, test_ds):
 
-for epoch in range(EPOCHS):
+  train_loss = tf.keras.metrics.Mean(name='train_loss')
+  train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
 
-    print(f"Epoch {epoch+1}: training....")
+  test_loss = tf.keras.metrics.Mean(name='test_loss')
+  test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
 
-    start = time()
-    for images, labels in train_ds:
-        #print('{}'.format(images.shape))
-        images = np.reshape(images,(28,28))
-        [out, kernel] = PST(images,0.5,0.2,9.6,-0.5,0.01,1)
-        images = np.reshape(np.array(out), (1,28,28,1))
-        train_step(images, labels)
-    end = time()
-    print(f"\tTraining completed in:{end-start} sec")
+  EPOCHS = 10
+  template = "Epoch {}: Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}\n"
 
-    start = time()
-    for test_images, test_labels in test_ds:
-        images = np.reshape(test_images,(28,28))
-        [out, kernel] = PST(images,0.5,0.2,9.6,-0.5,0.01,1)
-        test_images = np.reshape(np.array(out), (1,28,28,1))
-        test_step(test_images, test_labels)
-    end = time()
-    print(f"\tTesting completed in:{end-start} sec")
+  for epoch in range(EPOCHS):
 
-    print (template.format(epoch+1,
-                         train_loss.result(),
-                         train_accuracy.result()*100,
-                         test_loss.result(),
-                         test_accuracy.result()*100))
+      print(f"Epoch {epoch+1}: training....")
+
+      start = time()
+      for images, labels in train_ds:
+          #print('{}'.format(images.shape))
+          images = np.reshape(images,(28,28))
+          [out, kernel] = PST(images,0.5,0.2,9.6,-0.5,0.01,1)
+          images = np.reshape(np.array(out), (1,28,28,1))
+          train_step(images, labels)
+      end = time()
+      print(f"\tTraining completed in:{end-start} sec")
+
+      start = time()
+      for test_images, test_labels in test_ds:
+          images = np.reshape(test_images,(28,28))
+          [out, kernel] = PST(images,0.5,0.2,9.6,-0.5,0.01,1)
+          test_images = np.reshape(np.array(out), (1,28,28,1))
+          test_step(test_images, test_labels)
+      end = time()
+      print(f"\tTesting completed in:{end-start} sec")
+
+      print (template.format(epoch+1,
+                           train_loss.result(),
+                           train_accuracy.result()*100,
+                           test_loss.result(),
+                           test_accuracy.result()*100))
+
+run_model(train_ds,test_ds)
