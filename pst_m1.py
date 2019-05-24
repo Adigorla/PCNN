@@ -58,14 +58,6 @@ class pst_basic(tf.keras.layers.Layer):
                                         trainable=True,
                                         initializer=tf.initializers.TruncatedNormal(0.50, 0.25, seed=SEED),
                                         constraint=lambda var: tf.clip_by_value(var, 0, 1))
-        '''
-        self.pst_static = self.add_variable(name="pst_basic_static",
-                                        shape=[1,1],
-                                        dtype=tf.dtypes.float32,
-                                        initializer=tf.constant_initializer(0),
-                                        trainable=False,
-                                        constraint=lambda var: tf.clip_by_value(var, 0, 1))
-        '''
 
     def call(self, input):
         
@@ -100,7 +92,6 @@ model = pstModel()
 def train_step(images, labels):
   with tf.GradientTape() as tape:
     predictions = model(images)
-    #print(predictions)
     loss = loss_object(labels, predictions)
   gradients = tape.gradient(loss, model.trainable_variables)
   optimizer.apply_gradients(zip(gradients, model.trainable_variables))
@@ -129,10 +120,6 @@ for epoch in range(EPOCHS):
 
     start = time()
     for images, labels in train_ds:
-
-        #im = np.array(tf.reshape(images[0], [28,28]))
-        #[im, jim] = PST(im,0.21,0.48,12.14,-1.0,0.0019,1)
-        #print("no error on PST {}".format(im))
         train_step(images, labels)
     end = time()
     print(f"\tTraining completed in:{end-start} sec")
