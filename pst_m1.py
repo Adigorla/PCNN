@@ -42,6 +42,7 @@ template = "Epoch {}: Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}\n
 def PST_wrapper(I,LPF,Phase,Warp,Tmin,Tmax):
   I = tf.reshape(I[0], [28,28])
   out = PST(I,LPF,Phase,Warp,Tmin,Tmax)
+  out = tf.reshape(out, (1,28,28,1))
   return out
 
 
@@ -99,6 +100,7 @@ model = pstModel()
 def train_step(images, labels):
   with tf.GradientTape() as tape:
     predictions = model(images)
+    #print(predictions)
     loss = loss_object(labels, predictions)
   gradients = tape.gradient(loss, model.trainable_variables)
   optimizer.apply_gradients(zip(gradients, model.trainable_variables))
@@ -106,13 +108,13 @@ def train_step(images, labels):
   train_loss(loss)
   train_accuracy(labels, predictions)
 
-  @tf.function
-  def test_step(images, labels):
-    predictions = model(images)
-    t_loss = loss_object(labels, predictions)
+@tf.function
+def test_step(images, labels):
+  predictions = model(images)
+  t_loss = loss_object(labels, predictions)
 
-    test_loss(t_loss)
-    test_accuracy(labels, predictions)
+  test_loss(t_loss)
+  test_accuracy(labels, predictions)
 
 #the main train/test loop'
 '''
