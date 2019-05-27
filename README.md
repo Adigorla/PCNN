@@ -1,4 +1,7 @@
 # PCNN
+
+**NOTE** - currently the following instructions only will work on branch "griffin"
+
 In tf_prac1.py, we have implemented a simple convolutional neural network composed of 32 conv. filters with 3x3 kernels followed by two dense layers. This is the "control" to which we are comparing our PST neural network.
 
 In pst_m1.py, we have implemented a neural network that has a single PST layer followed by two dense layers, trained with gradient descent.
