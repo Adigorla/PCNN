@@ -72,7 +72,6 @@ for epoch in range(EPOCHS):
 
     start = time()
     for images, labels in train_ds:
-        print('{},{}'.format(images,images.shape))
         train_step(images, labels)
     end = time()
     print(f"\tTraining completed in:{end-start} sec")
