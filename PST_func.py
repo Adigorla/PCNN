@@ -41,68 +41,125 @@ Citations
 4. Y. Han, and B. Jalali, "Photonic time-stretched analog-to-digital converter: Fundamental concepts and practical considerations", Journal of Lightwave Technology 21, no. 12 (2003): 3085.
 """
 # Need to install mahotas library for morphological operations
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import math
 import numpy as np
 import mahotas as mh
+import tensorflow as tf
+from tensorflow import signal as sig 
+from tensorflow import math as tfm 
+from tensorflow.python import roll as _roll
+from tensorflow.python.framework import ops
+from tensorflow.python.util.tf_export import tf_export
+
+def fftshift(x, axes=None):
+    """
+    Shift the zero-frequency component to the center of the spectrum.
+    This function swaps half-spaces for all axes listed (defaults to all).
+    Note that ``y[0]`` is the Nyquist component only if ``len(x)`` is even.
+    Parameters
+    ----------
+    x : array_like, Tensor
+        Input array.
+    axes : int or shape tuple, optional
+        Axes over which to shift.  Default is None, which shifts all axes.
+    Returns
+    -------
+    y : Tensor.
+    """
+    x = ops.convert_to_tensor_v2(x)
+    if axes is None:
+        axes = tuple(range(x.get_shape().ndims))
+        shift = [dim // 2 for dim in x.shape]
+    elif isinstance(axes, int):
+        shift = x.shape[axes] // 2
+    else:
+        shift = [x.shape[ax] // 2 for ax in axes]
+
+    return _roll(x, shift, axes)
 
 #Function to convert from cartesian co-ordinates to polar
-def cart2pol(x, y):
-     theta = np.arctan2(y, x)
-     rho = np.hypot(x, y)
-     return (theta, rho)
-'''
+#def cart2pol(x, y):
+#    theta = np.arctan2(y, x)
+#     rho = np.hypot(x, y)
+#     return (theta, rho)
+
 #math = tf.math
 def cart2pol(x, y):
-    theta = math.atan2(y, x)
-    rho = math.sqrt(math.add(math.square(x), math.square(y)))
+    theta = tfm.atan2(y, x)
+    rho = tfm.sqrt(tfm.add(tfm.square(x), tfm.square(y)))
     return (theta, rho)
-'''
+
 
 #Pimary PST filter fucntion
 #TODO:
 #   -Cosider converting the use of numpy to TF's native math module, i.e., just work in tensor format
 #   -Conider dropping the morphological option and operations
-def PST(I,LPF,Phase_strength,Warp_strength, Threshold_min, Threshold_max, Morph_flag):
-    #inverting Threshold_min to simplyfy optimization porcess, so we can clip all variable between 0 and 1
+
+def PST(I,LPF,Phase_strength,Warp_strength, Threshold_min, Threshold_max):
+    #inverting Threshold_min to simplyfy optimization porcess, so we can clip all variable between 0 and 1  
+    LPF = ops.convert_to_tensor_v2(LPF)
+    Phase_strength = ops.convert_to_tensor_v2(Phase_strength)
+    Warp_strength = ops.convert_to_tensor_v2(Warp_strength)
+    I = ops.convert_to_tensor_v2(I)
+    Threshold_min = ops.convert_to_tensor_v2(Threshold_min)
+    Threshold_max = ops.convert_to_tensor_v2(Threshold_max)
+
     Threshold_min = -Threshold_min
     L=0.5
-    x = np.linspace(-L, L, I.shape[0])
-    y = np.linspace(-L, L, I.shape[1])
-    [X1, Y1] =(np.meshgrid(x, y))
-    X=X1.T
-    Y=Y1.T
+    x = tf.linspace(-L, L, I.shape[0])
+    y = tf.linspace(-L, L, I.shape[1])
+    [X1, Y1] =(tf.meshgrid(x, y))
+    X=tf.transpose(X1)
+    Y=tf.transpose(Y1)
     [THETA,RHO] = cart2pol(X,Y)
     # Apply localization kernel to the original image to reduce noise
-    Image_orig_f=((np.fft.fft2(I)))
-    expo = np.fft.fftshift(np.exp(-np.power((np.divide(RHO, math.sqrt((LPF**2)/np.log(2)))),2)))
-    Image_orig_filtered=np.real(np.fft.ifft2((np.multiply(Image_orig_f,expo))))
+    Image_orig_f=sig.fft2d(tf.dtypes.cast(I,tf.complex64))
+    #print('Tensorflow: {}'.format(Image_orig_f))
+  
+    tmp6 = (LPF**2.0)/tfm.log(2.0)
+    tmp5 = tfm.sqrt(tmp6)
+    tmp4 = (tfm.divide(RHO, tmp5))
+    tmp3 = -tfm.pow(tmp4,2)
+    tmp2 = tfm.exp(tmp3) 
+    expo = fftshift(tmp2)
+    Image_orig_filtered=tfm.real(sig.ifft2d((tfm.multiply(tf.dtypes.cast(Image_orig_f,tf.complex64),tf.dtypes.cast(expo,tf.complex64)))))
     # Constructing the PST Kernel
-    PST_Kernel_1=np.multiply(np.dot(RHO,Warp_strength), np.arctan(np.dot(RHO,Warp_strength)))-0.5*np.log(1+np.power(np.dot(RHO,Warp_strength),2))
-    PST_Kernel=PST_Kernel_1/np.max(PST_Kernel_1)*Phase_strength
+    tp1 = tfm.multiply(RHO,Warp_strength)
+    PST_Kernel_1=tfm.multiply(tp1, tfm.atan(tfm.multiply(RHO,Warp_strength)))-0.5*tfm.log(1.0+tfm.pow(tf.multiply(RHO,Warp_strength),2.0))
+    PST_Kernel=PST_Kernel_1/tfm.reduce_max(PST_Kernel_1)*Phase_strength
     # Apply the PST Kernel
-    temp=np.multiply(np.fft.fftshift(np.exp(-1j*PST_Kernel)),np.fft.fft2(Image_orig_filtered))
-    Image_orig_filtered_PST=np.fft.ifft2(temp)
+    temp=tfm.multiply(fftshift(tfm.exp(tfm.multiply(tf.dtypes.complex(0.0,-1.0),tf.dtypes.cast(PST_Kernel, tf.dtypes.complex64)))),sig.fft2d(tf.dtypes.cast(Image_orig_filtered, tf.dtypes.complex64)))
+    Image_orig_filtered_PST=sig.ifft2d(temp)
 
     # Calculate phase of the transformed image
-    PHI_features=np.angle(Image_orig_filtered_PST)
+    PHI_features=tfm.angle(Image_orig_filtered_PST)
+ 
 
-    if Morph_flag ==0:
-        out=PHI_features
-    else:
+    #if Morph_flag ==0:
+    out=PHI_features
+    out=(out/tfm.reduce_max(out))*3
+    #else:
         #   find image sharp transitions by thresholding the phase
-        features = np.zeros((PHI_features.shape[0],PHI_features.shape[1]))
-        features[PHI_features> Threshold_max] = 1 # Bi-threshold decision
-        features[PHI_features< Threshold_min] = 1 # as the output phase has both positive and negative values
-        features[I<(np.amax(I)/20)]=0 # Removing edges in the very dark areas of the image (noise)
+    #    features = np.zeros((PHI_features.shape[0],PHI_features.shape[1]))
+    #    features[PHI_features> Threshold_max] = 1 # Bi-threshold decision
+    #    features[PHI_features< Threshold_min] = 1 # as the output phase has both positive and negative values
+    #    features[(I<(np.amax(I)/20))] = 0 # Removing edges in the very dark areas of the image (noise)
 
         # apply binary morphological operations to clean the transformed image
-        out = features
-        out = mh.thin(out, 1)
-        out = mh.bwperim(out, 4)
-        out = mh.thin(out, 1)
-        out = mh.erode(out, np.ones((1, 1)));
+    #    out = features
+    #    out = mh.thin(out, 1)
+    #    out = mh.bwperim(out, 4)
+    #    out = mh.thin(out, 1)
+    #    out = mh.erode(out, np.ones((1, 1)));
 
-    return (out, PST_Kernel)
+    #out = out.astype(np.float64)*255
+
+
+
+    return out
 
 
 if __name__ == "__main__":

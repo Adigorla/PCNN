@@ -5,6 +5,7 @@ from tensorflow import math
 import numpy as np
 from PST_func import PST
 
+
 from tensorflow.keras.layers import Dense, Flatten, Conv2D
 from tensorflow.keras import Model
 
@@ -37,6 +38,15 @@ test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
 EPOCHS = 10
 template = "Epoch {}: Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}\n"
 
+
+def PST_wrapper(I,LPF,Phase,Warp,Tmin,Tmax):
+  I = tf.reshape(I[0], [28,28])
+  out = PST(I,LPF,Phase,Warp,Tmin,Tmax)
+  out = tf.reshape(out, (1,28,28,1))
+  return out
+
+
+
 class pst_basic(tf.keras.layers.Layer):
     def __init__(self):
         super(pst_basic, self).__init__()
@@ -48,21 +58,17 @@ class pst_basic(tf.keras.layers.Layer):
                                         trainable=True,
                                         initializer=tf.initializers.TruncatedNormal(0.50, 0.25, seed=SEED),
                                         constraint=lambda var: tf.clip_by_value(var, 0, 1))
-        self.pst_static = self.add_variable(name="pst_basic_satic",
-                                        shape=[1,1],
-                                        dtype=tf.dtypes.float32,
-                                        initializer=tf.constant_initializer(0),
-                                        trainable=False,
-                                        constraint=lambda var: tf.clip_by_value(var, 0, 1))
 
     def call(self, input):
-        return(PST(input,
+        
+        out = PST_wrapper(input, 
         self.pst_train[0],
         self.pst_train[1],
         self.pst_train[2],
         self.pst_train[3],
-        self.pst_train[4],
-        self.pst_static[0]))
+        self.pst_train[4])
+       
+        return(out)
 
 
 class pstModel(Model):
@@ -93,13 +99,13 @@ def train_step(images, labels):
   train_loss(loss)
   train_accuracy(labels, predictions)
 
-  @tf.function
-  def test_step(images, labels):
-    predictions = model(images)
-    t_loss = loss_object(labels, predictions)
+@tf.function
+def test_step(images, labels):
+  predictions = model(images)
+  t_loss = loss_object(labels, predictions)
 
-    test_loss(t_loss)
-    test_accuracy(labels, predictions)
+  test_loss(t_loss)
+  test_accuracy(labels, predictions)
 
 #the main train/test loop'
 '''
