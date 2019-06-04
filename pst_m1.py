@@ -75,9 +75,8 @@ class pstModel(Model):
   def __init__(self):
     super(pstModel, self).__init__()
     self.pst1 = pst_basic()
-    #Conv2D(32, 3, activation='relu')
     self.flatten = Flatten()
-    self.d1 = Dense(128, activation='relu')
+    self.d1 = Dense(128, activation='sigmoid')
     self.d2 = Dense(10, activation='softmax')
 
   def call(self, x):
