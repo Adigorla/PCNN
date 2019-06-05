@@ -1,3 +1,7 @@
+# These functions were originally written by the Jalali Lab at UCLA, however 
+# their conversion to tensorflow is our own work. The orginial PST algorithm
+# can be found here: https://github.com/JalaliLabUCLA/Image-feature-detection-using-Phase-Stretch-Transform/blob/master/Python/PST_function.py
+
 """
 Implementation of Phase Stretch Transform (PST) in Python
 @author: Madhuri Suthar, Ph.D. candidate, Jalali Lab, Department of Electrical and Computer Engineering,  UCLA
@@ -54,6 +58,10 @@ from tensorflow.python import roll as _roll
 from tensorflow.python.framework import ops
 from tensorflow.python.util.tf_export import tf_export
 
+
+# Note: this implementation was taken from the github for tensorflow 2.0 which is
+# currently still under development, and can be found at this link
+# https://gist.github.com/Gurpreetsingh9465/f76cc9e53107c29fd76515d64c294d3f
 def fftshift(x, axes=None):
     """
     Shift the zero-frequency component to the center of the spectrum.
@@ -80,23 +88,12 @@ def fftshift(x, axes=None):
 
     return _roll(x, shift, axes)
 
-#Function to convert from cartesian co-ordinates to polar
-#def cart2pol(x, y):
-#    theta = np.arctan2(y, x)
-#     rho = np.hypot(x, y)
-#     return (theta, rho)
-
-#math = tf.math
+#Below are tensorflow converted functions for PST
 def cart2pol(x, y):
     theta = tfm.atan2(y, x)
     rho = tfm.sqrt(tfm.add(tfm.square(x), tfm.square(y)))
     return (theta, rho)
 
-
-#Pimary PST filter fucntion
-#TODO:
-#   -Cosider converting the use of numpy to TF's native math module, i.e., just work in tensor format
-#   -Conider dropping the morphological option and operations
 
 def PST(I,LPF,Phase_strength,Warp_strength, Threshold_min, Threshold_max):
     #inverting Threshold_min to simplyfy optimization porcess, so we can clip all variable between 0 and 1  
@@ -117,7 +114,6 @@ def PST(I,LPF,Phase_strength,Warp_strength, Threshold_min, Threshold_max):
     [THETA,RHO] = cart2pol(X,Y)
     # Apply localization kernel to the original image to reduce noise
     Image_orig_f=sig.fft2d(tf.dtypes.cast(I,tf.complex64))
-    #print('Tensorflow: {}'.format(Image_orig_f))
   
     tmp6 = (LPF**2.0)/tfm.log(2.0)
     tmp5 = tfm.sqrt(tmp6)
@@ -137,27 +133,8 @@ def PST(I,LPF,Phase_strength,Warp_strength, Threshold_min, Threshold_max):
     # Calculate phase of the transformed image
     PHI_features=tfm.angle(Image_orig_filtered_PST)
  
-
-    #if Morph_flag ==0:
     out=PHI_features
     out=(out/tfm.reduce_max(out))*3
-    #else:
-        #   find image sharp transitions by thresholding the phase
-    #    features = np.zeros((PHI_features.shape[0],PHI_features.shape[1]))
-    #    features[PHI_features> Threshold_max] = 1 # Bi-threshold decision
-    #    features[PHI_features< Threshold_min] = 1 # as the output phase has both positive and negative values
-    #    features[(I<(np.amax(I)/20))] = 0 # Removing edges in the very dark areas of the image (noise)
-
-        # apply binary morphological operations to clean the transformed image
-    #    out = features
-    #    out = mh.thin(out, 1)
-    #    out = mh.bwperim(out, 4)
-    #    out = mh.thin(out, 1)
-    #    out = mh.erode(out, np.ones((1, 1)));
-
-    #out = out.astype(np.float64)*255
-
-
 
     return out
 
